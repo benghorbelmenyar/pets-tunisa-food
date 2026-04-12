@@ -118,7 +118,7 @@ export default function Catalog() {
 
                 <h2 style={{ fontSize: '14px', fontWeight: 600, textTransform: 'uppercase', marginBottom: '16px', letterSpacing: '1px' }}>Marques</h2>
                 <div className="flex flex-col gap-3" style={{ marginBottom: '40px' }}>
-                    {availableBrands.map((brand, i) => {
+                    {availableBrands.map((brand, _i) => {
                         const isSelected = selectedBrands.includes(brand);
                         return (
                             <label key={brand} className="flex items-center gap-3 hover-scale transition-all" style={{ cursor: 'pointer', fontSize: '15px' }}>
