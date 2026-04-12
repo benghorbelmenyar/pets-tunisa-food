@@ -433,3 +433,11 @@ select:focus {
   display: inline-block;
   transform-origin: left center;
 }
+@keyframes scroll-partners {
+    0%   { transform: translateX(0); }
+    100% { transform: translateX(-50%); }
+}
+
+.partners-track:hover {
+    animation-play-state: paused;
+}

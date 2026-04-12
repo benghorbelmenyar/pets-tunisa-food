@@ -9,6 +9,13 @@ export default function Home() {
     const [categories, setCategories] = useState<any[]>([]);
     const [contactForm, setContactForm] = useState({ name: '', email: '', subject: '', message: '' });
     const [contactStatus, setContactStatus] = useState<'idle' | 'submitting' | 'success' | 'error'>('idle');
+    const [currentImageIndex, setCurrentImageIndex] = useState(0);
+
+    const heroImages = [
+        "/hero-dog.jpg",
+            "/images/croquettes.png"   // ← ajoutez cette ligne
+
+    ];
 
     const handleContactSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
@@ -23,6 +30,13 @@ export default function Home() {
             setTimeout(() => setContactStatus('idle'), 5000);
         }
     };
+
+    useEffect(() => {
+        const interval = setInterval(() => {
+            setCurrentImageIndex(prev => (prev + 1) % heroImages.length);
+        }, 2000);
+        return () => clearInterval(interval);
+    }, []);
 
     useEffect(() => {
         api.get('/products')
@@ -59,20 +73,24 @@ export default function Home() {
                             <span style={{ color: 'var(--color-primary)', fontStyle: 'italic', fontWeight: 500 }}>pour vos compagnons.</span>
                         </h1>
 
-                        <p className="text-muted" style={{ fontSize: '18px', maxWidth: '480px', marginBottom: '40px', lineHeight: 1.7 }}>
-                            Chaque recette est une symphonie d'ingrédients nobles, conçue pour révéler la vitalité et la beauté absolue de votre compagnon.
-                        </p>
+                        <p className="text-muted" style={{ fontSize: '15px', maxWidth: '480px', marginBottom: '40px', lineHeight: 1.7 }}>
+Pets Tunisia Food : le meilleur rapport Qualité/Prix Premium pour le prix d'une croquette de supermarché. Le choix malin pour de la qualité sans exploser votre budget, et offrir la haute performance à prix accessible à vos compagnons !                        </p>
 
                         <div className="flex flex-wrap items-center gap-4" style={{ marginBottom: '48px' }}>
                             <Link to="/shop" className="hover-scale" style={{ backgroundColor: '#b38d58', color: '#fff', padding: '16px 32px', borderRadius: '8px', fontSize: '16px', fontWeight: 700, textDecoration: 'none', boxShadow: '0 4px 12px rgba(179, 141, 88, 0.3)' }}>
                                 Découvrir nos produits
                             </Link>
-                            <Link to="/promotions" className="hover-scale" style={{ backgroundColor: '#fff', color: '#1a1a1a', padding: '16px 32px', borderRadius: '8px', fontSize: '16px', fontWeight: 700, border: '1px solid #e0e0e0', textDecoration: 'none', boxShadow: '0 4px 12px rgba(0, 0, 0, 0.05)' }}>
-                                Nos promotions
-                            </Link>
+                           
+<button
+    onClick={() => document.getElementById('nos-partenaires')?.scrollIntoView({ behavior: 'smooth' })}
+    className="hover-scale"
+    style={{ backgroundColor: '#fff', color: '#1a1a1a', padding: '16px 32px', borderRadius: '8px', fontSize: '16px', fontWeight: 700, border: '1px solid #e0e0e0', cursor: 'pointer', boxShadow: '0 4px 12px rgba(0, 0, 0, 0.05)' }}
+>
+    Nos partenaires
+</button>
                         </div>
 
-                        <div style={{ borderTop: '1px solid #eaeaea', paddingTop: '32px', display: 'flex', gap: '48px', flexWrap: 'wrap' }}>
+                        <div style={{ borderTop: '1px solid #eaeaea', paddingTop: '20px', display: 'flex', gap: '40px', flexWrap: 'wrap' }}>
                             <div>
                                 <div style={{ fontSize: '32px', fontWeight: 800, color: '#b38d58', lineHeight: 1 }}>5000+</div>
                                 <div style={{ fontSize: '14px', color: '#4a4a4a', marginTop: '8px', fontWeight: 500 }}>Produits</div>
@@ -93,7 +111,7 @@ export default function Home() {
                     <div style={{ position: 'relative', height: '600px' }} className="animate-fade-in-left delay-300">
                         {/* Main Image */}
                         <div style={{ position: 'absolute', right: 0, top: '50%', transform: 'translateY(-50%)', width: '80%', height: '80%', borderRadius: '40px 0 100px 40px', overflow: 'hidden', boxShadow: 'var(--shadow-lg)' }}>
-                            <img src="/hero-dog.jpg" alt="German Shepherd" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                            <img src={heroImages[currentImageIndex]} alt="Hero Dog" style={{ width: '100%', height: '100%', objectFit: 'cover', transition: 'all 0.5s ease-in-out' }} key={currentImageIndex} />
                         </div>
 
                         {/* Overlapping Glass Card */}
@@ -127,8 +145,7 @@ export default function Home() {
 
             {/* --- DEALS & PROMOTIONS (Redesigned) --- */}
             <section className="animate-fade-in-up delay-200" style={{ position: 'relative', overflow: 'hidden', padding: '80px 24px 40px 24px', backgroundColor: '#f9f9f9', minHeight: '600px', display: 'flex', alignItems: 'center' }}>
-                <img src="https://images.unsplash.com/photo-1552053831-71594a27632d?ixlib=rb-4.0.3&auto=format&fit=crop&w=1600&q=80" alt="Dog background" style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', objectFit: 'cover', objectPosition: 'center 20%', zIndex: 0 }} />
-                <div style={{ position: 'absolute', inset: 0, background: 'linear-gradient(to right, rgba(255,255,255,0.9) 0%, rgba(255,255,255,0) 60%)', zIndex: 1 }}></div>
+<img src="/images/animalcoroquette.png" alt="Dog background" style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', objectFit: 'cover', objectPosition: 'center center', zIndex: 0 }} />                <div style={{ position: 'absolute', inset: 0, background: 'linear-gradient(to right, rgba(255,255,255,0.9) 0%, rgba(255,255,255,0) 60%)', zIndex: 1 }}></div>
 
                 <div className="container" style={{ zIndex: 10, position: 'relative', display: 'flex', flexDirection: 'column', height: '100%', justifyContent: 'space-between' }}>
                     <div style={{ maxWidth: '500px', marginBottom: '80px', marginTop: '20px', alignSelf: 'flex-start', textAlign: 'left' }}>
@@ -305,6 +322,80 @@ export default function Home() {
                     </div>
                 </div>
             </section>
+            {/* --- NOS PARTENAIRES --- */}
+{/* --- NOS PARTENAIRES --- */}
+{/* --- NOS PARTENAIRES --- */}
+<section id="nos-partenaires" className="bg-alt animate-fade-in-up" style={{ padding: '0px 0px 100px 0px', overflow: 'hidden' }}>
+    <div className="container" style={{ paddingLeft: '24px', paddingRight: '24px', marginBottom: '40px' }}>
+        <div className="flex justify-between items-end">
+            <div>
+                <h2 style={{ fontSize: '32px', fontWeight: 700, marginBottom: '8px' }}>Nos Partenaires</h2>
+                <p className="text-muted" style={{ fontSize: '14px' }}>Ils nous font confiance et partagent nos valeurs.</p>
+            </div>
+        </div>
+    </div>
+
+    {/* Scrolling track */}
+    <div style={{ position: 'relative', width: '100%', overflow: 'hidden' }}>
+        {/* Fondu gauche */}
+        <div style={{ position: 'absolute', left: 0, top: 0, bottom: 0, width: '120px', background: 'linear-gradient(to right, var(--color-background-alt), transparent)', zIndex: 10, pointerEvents: 'none' }} />
+        {/* Fondu droite */}
+        <div style={{ position: 'absolute', right: 0, top: 0, bottom: 0, width: '120px', background: 'linear-gradient(to left, var(--color-background-alt), transparent)', zIndex: 10, pointerEvents: 'none' }} />
+
+        <div
+            className="partners-track"
+            style={{
+                display: 'flex',
+                gap: '24px',
+                width: 'max-content',
+                animation: 'scroll-partners 18s linear infinite',
+            }}
+        >
+            {[...Array(2)].flatMap((_, dupIdx) =>
+                [
+                    { name: 'Primal Spirit', logo: '/images/primal4.png' },
+                    { name: 'Alpha Spirit',  logo: '/images/alpha.png'   },
+                    { name: 'Mr Meaty',      logo: '/images/meaty.png'   },
+                ].map((partner, i) => (
+                    <div
+                        key={`${dupIdx}-${i}`}
+                        className="hover-lift"
+                        style={{
+                            backgroundColor: 'var(--color-surface)',
+                            padding: '28px 36px',
+                            borderRadius: '16px',
+                            display: 'flex',
+                            flexDirection: 'column',
+                            alignItems: 'center',
+                            justifyContent: 'center',
+                            gap: '12px',
+                            textAlign: 'center',
+                            boxShadow: 'var(--shadow-sm)',
+                            minWidth: '200px',
+                            minHeight: '130px',
+                            flexShrink: 0,
+                        }}
+                    >
+                        <img
+                            src={partner.logo}
+                            alt={partner.name}
+                            onError={(e) => {
+                                e.currentTarget.style.display = 'none';
+                                (e.currentTarget.nextElementSibling as HTMLElement).style.display = 'flex';
+                            }}
+                            style={{ maxWidth: '120px', maxHeight: '65px', objectFit: 'contain', filter: 'grayscale(15%)' }}
+                        />
+                        {/* Fallback */}
+                        <div style={{ display: 'none', width: '60px', height: '60px', borderRadius: '50%', backgroundColor: '#f2e8d9', alignItems: 'center', justifyContent: 'center' }}>
+                            <Heart size={24} style={{ color: '#b38d58' }} />
+                        </div>
+                        <span style={{ fontSize: '12px', fontWeight: 600, color: 'var(--color-text-muted)' }}>{partner.name}</span>
+                    </div>
+                ))
+            )}
+        </div>
+    </div>
+</section>
 
             {/* --- CONTACT & MAP (Prototype Style) --- */}
             <section className="container animate-fade-in-up delay-200" style={{ padding: '0 24px 100px 24px' }}>
