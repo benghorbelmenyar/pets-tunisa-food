@@ -7,25 +7,25 @@ export type UserDocument = User & Document;
 @Schema({ timestamps: true })
 export class User {
     @Prop({ required: true })
-    firstName: string;
+    firstName!: string;
 
     @Prop({ required: true })
-    lastName: string;
+    lastName!: string;
 
     @Prop({ required: true, unique: true })
-    email: string;
+    email!: string;
 
     @Prop({ required: true })
-    passwordHash: string;
+    passwordHash!: string;
 
     @Prop({ type: String, enum: Role, default: Role.CLIENT })
-    role: Role;
-    // dans votre user.schema.ts
-@Prop({ type: String, default: null })
-resetCode: string;
+    role!: Role;
 
-@Prop({ type: Date, default: null })
-resetCodeExpiry: Date;
+    @Prop({ type: String, default: null })
+    resetCode!: string | null;
+
+    @Prop({ type: Date, default: null })
+    resetCodeExpiry!: Date | null;
 }
 
 export const UserSchema = SchemaFactory.createForClass(User);
