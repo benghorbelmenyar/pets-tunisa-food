@@ -50,8 +50,7 @@ pipeline {
         stage('Deploy') {
             steps {
                 echo 'Déploiement en cours...'
-                sh "docker compose up -d"
-            }
+sh "docker-compose up -d"            }
         }
     }
     post {
