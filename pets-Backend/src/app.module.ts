@@ -15,8 +15,11 @@ import { ContactsModule } from './contacts/contacts.module';
 
 @Module({
   imports: [
-MongooseModule.forRoot(process.env.MONGODB_URI || 'mongodb://localhost/petstore'),
-    AuthModule,
+MongooseModule.forRootAsync({
+  useFactory: () => ({
+    uri: process.env.MONGODB_URI || 'mongodb://mongo:27017/pets',
+  }),
+}),    AuthModule,
     UsersModule,
     ProductsModule,
     CategoriesModule,
