@@ -1,19 +1,28 @@
 pipeline {
     agent any
-
     environment {
         DOCKER_USERNAME = 'menyar35160'
         IMAGE_BACKEND   = "${DOCKER_USERNAME}/pets-backend"
         IMAGE_FRONTEND  = "${DOCKER_USERNAME}/pets-frontend"
         VERSION         = "v${BUILD_NUMBER}"
     }
-
     stages {
-
         stage('Checkout') {
             steps {
                 echo 'Récupération du code...'
                 checkout scm
+            }
+        }
+
+        stage('Docker Login') {
+            steps {
+                withCredentials([usernamePassword(
+                    credentialsId: 'dockerhub-credentials',
+                    usernameVariable: 'DOCKER_USER',
+                    passwordVariable: 'DOCKER_PASS'
+                )]) {
+                    sh 'echo $DOCKER_PASS | docker login -u $DOCKER_USER --password-stdin'
+                }
             }
         }
 
@@ -33,17 +42,8 @@ pipeline {
 
         stage('Push Docker Hub') {
             steps {
-                withCredentials([usernamePassword(
-                    credentialsId: 'dockerhub-credentials',
-                    usernameVariable: 'DOCKER_USER',
-                    passwordVariable: 'DOCKER_PASS'
-                )]) {
-
-                    sh "echo $DOCKER_PASS | docker login -u $DOCKER_USER --password-stdin"
-
-                    sh "docker push ${IMAGE_BACKEND}:${VERSION}"
-                    sh "docker push ${IMAGE_FRONTEND}:${VERSION}"
-                }
+                sh "docker push ${IMAGE_BACKEND}:${VERSION}"
+                sh "docker push ${IMAGE_FRONTEND}:${VERSION}"
             }
         }
 
@@ -54,7 +54,6 @@ pipeline {
             }
         }
     }
-
     post {
         success {
             echo '✅ Pipeline réussie !'

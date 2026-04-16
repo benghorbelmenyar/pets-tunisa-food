@@ -15,7 +15,7 @@ import { ContactsModule } from './contacts/contacts.module';
 
 @Module({
   imports: [
-    MongooseModule.forRoot('mongodb://localhost/petstore'),
+MongooseModule.forRoot(process.env.MONGODB_URI || 'mongodb://localhost/petstore'),
     AuthModule,
     UsersModule,
     ProductsModule,
