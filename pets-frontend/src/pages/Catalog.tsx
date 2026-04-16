@@ -10,6 +10,7 @@ export default function Catalog() {
     const [selectedBrands, setSelectedBrands] = useState<string[]>([]);
     const [maxPrice, setMaxPrice] = useState<number>(1000000);
     const [products, setProducts] = useState<any[]>([]);
+    const [promotions, setPromotions] = useState<any[]>([]);
 
     useEffect(() => {
         const cat = searchParams.get('category');
@@ -21,16 +22,52 @@ export default function Catalog() {
         else if (catName) setCompanion(catName);
         else setCompanion('Tous');
 
-        if (search) {
-            setSearchQuery(search);
-        }
+        if (search) setSearchQuery(search);
     }, [searchParams]);
 
     useEffect(() => {
         api.get('/products')
             .then(res => setProducts(res.data))
             .catch(console.error);
+
+        api.get('/promotions')
+            .then(res => {
+                const now = new Date();
+                const active = res.data.filter((p: any) =>
+                    p.isActive !== false &&
+                    new Date(p.startDate) <= now &&
+                    new Date(p.endDate) >= now
+                );
+                setPromotions(active);
+            })
+            .catch(console.error);
     }, []);
+
+    // Same logic as ProductDetails: find active promo for a product
+    const getProductPrice = (product: any) => {
+        // 1. If product already has promo price set in DB
+        if (product.isPromo && product.oldPrice) {
+            return { price: product.price, oldPrice: product.oldPrice, discountPct: 0 };
+        }
+
+        // 2. Check active promotions
+        const productId = product._id || product.id;
+        const promo = promotions.find((pr: any) =>
+            (pr.applicableProducts || pr.products)?.some((ap: any) => {
+                const pid = ap._id || ap.id || ap;
+                return pid === productId || pid?.toString() === productId?.toString();
+            })
+        );
+
+        if (promo) {
+            const discountPct = promo.discountPercentage ?? promo.discount ?? 0;
+            const discountedPrice = product.price * (1 - discountPct / 100);
+            return { price: discountedPrice, oldPrice: product.price, discountPct };
+        }
+
+        // 3. No promo
+        return { price: product.price, oldPrice: product.oldPrice ?? null, discountPct: 0 };
+    };
 
     const filteredProducts = products.filter(p => {
         // 1. Category Filter
@@ -54,9 +91,7 @@ export default function Catalog() {
         if (searchQuery) {
             const query = searchQuery.toLowerCase();
             const desc = (p.description || p.desc || '').toLowerCase();
-            if (!prodName.includes(query) && !desc.includes(query)) {
-                return false;
-            }
+            if (!prodName.includes(query) && !desc.includes(query)) return false;
         }
 
         // 3. Brand Filter
@@ -66,18 +101,14 @@ export default function Catalog() {
             if (!hasBrand) return false;
         }
 
-        // 4. Price Filter
-        const price = parseFloat(p.price);
-        if (!isNaN(price) && price > maxPrice) {
-            return false;
-        }
+        // 4. Price Filter — use the real (post-promo) price
+        const { price } = getProductPrice(p);
+        if (!isNaN(price) && price > maxPrice) return false;
 
         return true;
     });
 
-    // Extract top brands dynamically
     const availableBrands = Array.from(new Set(products.map(p => p.brand || 'PREMIUM'))).slice(0, 6);
-    // Find highest price for the range maximum
     const highestPrice = Math.max(...products.map(p => parseFloat(p.price) || 0), 1000);
 
     return (
@@ -118,7 +149,7 @@ export default function Catalog() {
 
                 <h2 style={{ fontSize: '14px', fontWeight: 600, textTransform: 'uppercase', marginBottom: '16px', letterSpacing: '1px' }}>Marques</h2>
                 <div className="flex flex-col gap-3" style={{ marginBottom: '40px' }}>
-                    {availableBrands.map((brand, i) => {
+                    {availableBrands.map((brand) => {
                         const isSelected = selectedBrands.includes(brand);
                         return (
                             <label key={brand} className="flex items-center gap-3 hover-scale transition-all" style={{ cursor: 'pointer', fontSize: '15px' }}>
@@ -129,7 +160,9 @@ export default function Catalog() {
                                     }}
                                     style={{
                                         width: '18px', height: '18px', border: '1px solid var(--color-border)', borderRadius: '4px',
-                                        display: 'flex', alignItems: 'center', justifyContent: 'center', backgroundColor: isSelected ? 'var(--color-primary)' : 'transparent', borderColor: isSelected ? 'var(--color-primary)' : 'var(--color-border)'
+                                        display: 'flex', alignItems: 'center', justifyContent: 'center',
+                                        backgroundColor: isSelected ? 'var(--color-primary)' : 'transparent',
+                                        borderColor: isSelected ? 'var(--color-primary)' : 'var(--color-border)'
                                     }}>
                                     {isSelected && <Check size={12} color="white" />}
                                 </div>
@@ -180,27 +213,54 @@ export default function Catalog() {
                 </div>
 
                 <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))', gap: '32px' }}>
-                    {filteredProducts.map((product, idx) => (
-                        <div key={product._id || product.id} className={`animate-fade-in-up delay-${Math.min((idx + 1) * 100, 500)}`}>
-                            <Link to={`/product/${product._id || product.id}`} className="hover-lift" style={{ display: 'flex', flexDirection: 'column', height: '100%' }}>
-                                <div className="image-wrapper" style={{ position: 'relative', height: '320px', backgroundColor: 'var(--color-background-alt)', marginBottom: '20px' }}>
-                                    <img src={product.images?.[0] || 'https://images.unsplash.com/photo-1583511655857-d19b40a7a54e?ixlib=rb-4.0.3'} alt={product.name || product.title} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
-                                    {product.badge && (
-                                        <div style={{ position: 'absolute', top: '16px', left: '16px', backgroundColor: 'white', padding: '4px 10px', borderRadius: '4px', fontSize: '10px', fontWeight: 700, letterSpacing: '1px' }} className={product.badgeColor || "text-primary"}>
-                                            {product.badge}
-                                        </div>
-                                    )}
-                                </div>
-                                <span style={{ fontSize: '12px', fontWeight: 600, textTransform: 'uppercase', color: 'var(--color-primary)', letterSpacing: '1px', marginBottom: '4px' }}>{product.brand || 'PREMIUM'}</span>
-                                <h3 style={{ fontSize: '20px', marginBottom: '12px' }}>{product.name || product.title}</h3>
-                                <p className="text-muted" style={{ fontSize: '14px', flex: 1, marginBottom: '20px', lineHeight: 1.6, display: '-webkit-box', WebkitLineClamp: 3, WebkitBoxOrient: 'vertical', overflow: 'hidden', textOverflow: 'ellipsis' }}>{product.description || product.desc}</p>
-                                <div className="flex items-center gap-3">
-                                    <span style={{ fontSize: '18px', fontWeight: 700 }}>{product.price} TND</span>
-                                    {product.oldPrice && <span className="text-muted" style={{ fontSize: '14px', textDecoration: 'line-through' }}>{product.oldPrice} TND</span>}
-                                </div>
-                            </Link>
-                        </div>
-                    ))}
+                    {filteredProducts.map((product, idx) => {
+                        const { price, oldPrice, discountPct } = getProductPrice(product);
+                        return (
+                            <div key={product._id || product.id} className={`animate-fade-in-up delay-${Math.min((idx + 1) * 100, 500)}`}>
+                                <Link to={`/product/${product._id || product.id}`} className="hover-lift" style={{ display: 'flex', flexDirection: 'column', height: '100%' }}>
+                                    <div className="image-wrapper" style={{ position: 'relative', height: '320px', backgroundColor: 'var(--color-background-alt)', marginBottom: '20px' }}>
+                                        <img
+                                            src={product.images?.[0] || 'https://images.unsplash.com/photo-1583511655857-d19b40a7a54e?ixlib=rb-4.0.3'}
+                                            alt={product.name || product.title}
+                                            style={{ width: '100%', height: '100%', objectFit: 'cover' }}
+                                        />
+                                        {/* Promo badge */}
+                                        {discountPct > 0 && (
+                                            <div style={{ position: 'absolute', top: '16px', left: '16px', backgroundColor: '#1a1a1a', color: 'white', padding: '4px 10px', borderRadius: '4px', fontSize: '10px', fontWeight: 700, letterSpacing: '1px' }}>
+                                                -{discountPct}%
+                                            </div>
+                                        )}
+                                        {/* Existing badge (non-promo) */}
+                                        {product.badge && discountPct === 0 && (
+                                            <div style={{ position: 'absolute', top: '16px', left: '16px', backgroundColor: 'white', padding: '4px 10px', borderRadius: '4px', fontSize: '10px', fontWeight: 700, letterSpacing: '1px' }} className={product.badgeColor || 'text-primary'}>
+                                                {product.badge}
+                                            </div>
+                                        )}
+                                    </div>
+
+                                    <span style={{ fontSize: '12px', fontWeight: 600, textTransform: 'uppercase', color: 'var(--color-primary)', letterSpacing: '1px', marginBottom: '4px' }}>
+                                        {product.brand || 'PREMIUM'}
+                                    </span>
+                                    <h3 style={{ fontSize: '20px', marginBottom: '12px' }}>{product.name || product.title}</h3>
+                                    <p className="text-muted" style={{ fontSize: '14px', flex: 1, marginBottom: '20px', lineHeight: 1.6, display: '-webkit-box', WebkitLineClamp: 3, WebkitBoxOrient: 'vertical', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                                        {product.description || product.desc}
+                                    </p>
+
+                                    {/* Prix — identique à ProductDetails */}
+<div className="flex items-center gap-3">
+    <span style={{ fontSize: '18px', fontWeight: 700, color: oldPrice ? '#d32f2f' : 'inherit' }}>
+        {(parseFloat(price) / 1000).toFixed(3)} TND
+    </span>
+    {oldPrice && (
+        <span className="text-muted" style={{ fontSize: '14px', textDecoration: 'line-through' }}>
+            {(parseFloat(oldPrice) / 1000).toFixed(3)} TND
+        </span>
+    )}
+</div>
+                                </Link>
+                            </div>
+                        );
+                    })}
                 </div>
 
                 <div className="flex items-center justify-center gap-2 animate-fade-in-up delay-500" style={{ marginTop: '60px' }}>

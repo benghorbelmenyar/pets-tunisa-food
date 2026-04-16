@@ -19,14 +19,12 @@ pipeline {
 
         stage('Build Backend') {
             steps {
-                echo 'Build image backend...'
                 sh "docker build -t ${IMAGE_BACKEND}:${VERSION} ./pets-Backend"
             }
         }
 
         stage('Build Frontend') {
             steps {
-                echo 'Build image frontend...'
                 sh "docker build -t ${IMAGE_FRONTEND}:${VERSION} ./pets-frontend"
             }
         }
@@ -47,18 +45,13 @@ pipeline {
 
         stage('Deploy') {
             steps {
-                echo 'Déploiement en cours...'
                 sh "docker compose up -d"
             }
         }
     }
 
     post {
-        success {
-            echo '✅ Pipeline réussie !'
-        }
-        failure {
-            echo '❌ Pipeline échouée !'
-        }
+        success { echo '✅ Pipeline réussie !' }
+        failure { echo '❌ Pipeline échouée !' }
     }
 }

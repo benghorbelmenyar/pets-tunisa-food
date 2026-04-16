@@ -38,8 +38,7 @@ export class UploadController {
             }
         }),
         fileFilter: (req, file, cb) => {
-            if (!file.mimetype.match(/\/(jpg|jpeg|png|gif|webp)$/)) {
-                return cb(new BadRequestException('Only image files are allowed!'), false);
+if (!file.mimetype.match(/\/(jpg|jpeg|png|gif|webp|avif)$/)) {                return cb(new BadRequestException('Only image files are allowed!'), false);
             }
             cb(null, true);
         }
