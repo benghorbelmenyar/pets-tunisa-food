@@ -7,10 +7,10 @@ export default function ProductDetails() {
     const { id } = useParams();
     const [product, setProduct] = useState<any>(null);
     const [similarProducts, setSimilarProducts] = useState<any[]>([]);
+    const [activePromo, setActivePromo] = useState<any>(null);
     const [quantity, setQuantity] = useState(1);
     const [weight, setWeight] = useState('12kg');
     const [expanded, setExpanded] = useState<string | null>('ingredients');
-
     const [showToast, setShowToast] = useState(false);
 
     useEffect(() => {
@@ -18,9 +18,27 @@ export default function ProductDetails() {
             api.get(`/products/${id}`)
                 .then(res => {
                     setProduct(res.data);
+                    const productId = res.data._id || res.data.id;
+
+                    // Fetch promotions and check if this product is included
+                    api.get('/promotions')
+                        .then(promoRes => {
+                            const promos: any[] = promoRes.data;
+                           const matchingPromo = promos.find((promo: any) =>
+    promo.isActive !== false &&
+    (promo.applicableProducts || promo.products)?.some((p: any) => {
+        const pid = p._id || p.id || p;
+        return pid === productId || pid?.toString() === productId?.toString();
+    })
+);
+                            if (matchingPromo) setActivePromo(matchingPromo);
+                        })
+                        .catch(console.error);
+
+                    // Fetch similar products by category
                     const catId = res.data.category?._id || res.data.category?.id || res.data.category;
                     if (catId) {
-                        api.get(`/products${catId ? `?category=${catId}` : ''}`)
+                        api.get(`/products?category=${catId}`)
                             .then(catRes => {
                                 const similar = catRes.data.filter((p: any) => (p._id || p.id) !== id).slice(0, 4);
                                 setSimilarProducts(similar);
@@ -51,9 +69,17 @@ export default function ProductDetails() {
 
     if (!product) return <div className="container" style={{ padding: '60px 24px' }}>Loading...</div>;
 
+    // Compute prices
+    const discountPct: number = activePromo?.discountPercentage ?? activePromo?.discount ?? 0;
+    const originalPrice: number = product.price;
+    const discountedPrice: number | null = discountPct > 0
+        ? Math.round(originalPrice * (1 - discountPct / 100))
+        : null;
+    const displayPrice = discountedPrice ?? originalPrice;
+
     return (
         <div className="container animate-fade-in-up" style={{ padding: '60px 24px', position: 'relative' }}>
-            {/* Custom Toast Notification */}
+            {/* Toast */}
             {showToast && (
                 <div className="animate-fade-in-up" style={{ position: 'fixed', bottom: '24px', right: '24px', backgroundColor: '#1a1a1a', color: 'white', padding: '16px 24px', borderRadius: '12px', boxShadow: '0 10px 30px rgba(0,0,0,0.2)', display: 'flex', alignItems: 'center', gap: '12px', zIndex: 1000 }}>
                     <div style={{ width: '24px', height: '24px', borderRadius: '50%', backgroundColor: 'var(--color-success)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
@@ -68,7 +94,13 @@ export default function ProductDetails() {
                 <div className="animate-fade-in-left delay-100" style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '20px' }}>
                     {product.images && product.images.length > 0 ? (
                         <>
-                            <div className="image-wrapper" style={{ gridColumn: '1 / -1', height: '500px', borderRadius: 'var(--radius-lg)', overflow: 'hidden', backgroundColor: 'var(--color-surface)' }}>
+                            <div className="image-wrapper" style={{ gridColumn: '1 / -1', height: '500px', borderRadius: 'var(--radius-lg)', overflow: 'hidden', backgroundColor: 'var(--color-surface)', position: 'relative' }}>
+                                {/* Promo badge on image */}
+                                {discountPct > 0 && (
+                                    <div style={{ position: 'absolute', top: '16px', left: '16px', backgroundColor: '#1a1a1a', color: 'white', padding: '6px 12px', borderRadius: '8px', fontSize: '13px', fontWeight: 700, zIndex: 2 }}>
+                                        -{discountPct}%
+                                    </div>
+                                )}
                                 <img
                                     src={product.images[0]}
                                     alt={product.name || 'Product'}
@@ -82,7 +114,12 @@ export default function ProductDetails() {
                             ))}
                         </>
                     ) : (
-                        <div className="image-wrapper" style={{ gridColumn: '1 / -1', height: '500px', borderRadius: 'var(--radius-lg)', overflow: 'hidden', backgroundColor: 'var(--color-background-alt)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                        <div className="image-wrapper" style={{ gridColumn: '1 / -1', height: '500px', borderRadius: 'var(--radius-lg)', overflow: 'hidden', backgroundColor: 'var(--color-background-alt)', display: 'flex', alignItems: 'center', justifyContent: 'center', position: 'relative' }}>
+                            {discountPct > 0 && (
+                                <div style={{ position: 'absolute', top: '16px', left: '16px', backgroundColor: '#1a1a1a', color: 'white', padding: '6px 12px', borderRadius: '8px', fontSize: '13px', fontWeight: 700 }}>
+                                    -{discountPct}%
+                                </div>
+                            )}
                             <span style={{ color: 'var(--color-text-muted)' }}>Image non disponible</span>
                         </div>
                     )}
@@ -107,10 +144,34 @@ export default function ProductDetails() {
                         <span className="text-muted" style={{ fontSize: '14px' }}>(124 Reviews)</span>
                     </div>
 
+                    {/* ✅ PRIX AVEC PROMO */}
                     <div className="flex items-center gap-4" style={{ marginBottom: '32px' }}>
-                        <span style={{ fontSize: '32px', fontWeight: 700 }}>{(product.price / 1000).toFixed(3)} TND</span>
-                        {product.oldPrice && <span className="text-muted" style={{ fontSize: '20px', textDecoration: 'line-through' }}>{(product.oldPrice / 1000).toFixed(3)} TND</span>}
+                        <span style={{ fontSize: '32px', fontWeight: 700, color: discountedPrice ? 'var(--color-error)' : 'inherit' }}>
+                            {(displayPrice / 1000).toFixed(3)} TND
+                        </span>
+                        {discountedPrice && (
+                            <span className="text-muted" style={{ fontSize: '20px', textDecoration: 'line-through' }}>
+                                {(originalPrice / 1000).toFixed(3)} TND
+                            </span>
+                        )}
+                        {!discountedPrice && product.oldPrice && (
+                            <span className="text-muted" style={{ fontSize: '20px', textDecoration: 'line-through' }}>
+                                {(product.oldPrice / 1000).toFixed(3)} TND
+                            </span>
+                        )}
+                        {discountPct > 0 && (
+                            <span style={{ backgroundColor: '#1a1a1a', color: 'white', padding: '4px 10px', borderRadius: '6px', fontSize: '13px', fontWeight: 700 }}>
+                                -{discountPct}%
+                            </span>
+                        )}
                     </div>
+
+                    {/* Promo label si active */}
+                    {activePromo && (
+                        <div style={{ backgroundColor: 'var(--color-primary-light)', color: 'var(--color-primary)', padding: '10px 16px', borderRadius: 'var(--radius-md)', fontSize: '13px', fontWeight: 600, marginBottom: '24px', display: 'inline-flex', alignItems: 'center', gap: '8px' }}>
+                            🏷️ {activePromo.name || 'Offre promotionnelle'} — Ne manquez pas cette offre à durée limitée !
+                        </div>
+                    )}
 
                     <p className="text-muted" style={{ fontSize: '16px', lineHeight: 1.6, marginBottom: '40px' }}>
                         {product.description}
@@ -203,7 +264,9 @@ export default function ProductDetails() {
                             </span>
                             <h2 style={{ fontSize: '32px', fontWeight: 700 }}>Complétez votre achat</h2>
                         </div>
-                        <Link to="/shop" className="flex items-center gap-2 text-primary hover-scale transition-all" style={{ fontWeight: 600 }}>Voir tout le catalogue <ChevronDown size={16} style={{ transform: 'rotate(-90deg)' }} /></Link>
+                        <Link to="/shop" className="flex items-center gap-2 text-primary hover-scale transition-all" style={{ fontWeight: 600 }}>
+                            Voir tout le catalogue <ChevronDown size={16} style={{ transform: 'rotate(-90deg)' }} />
+                        </Link>
                     </div>
 
                     <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '24px' }}>

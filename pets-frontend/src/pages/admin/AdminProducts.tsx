@@ -7,7 +7,15 @@ export default function AdminProducts() {
     const [categories, setCategories] = useState<any[]>([]);
     const [isModalOpen, setIsModalOpen] = useState(false);
     const [editingProductId, setEditingProductId] = useState<string | null>(null);
-    const [newProd, setNewProd] = useState({ name: '', description: '', category: '', basePrice: 0, discount: 0, stock: 0, isPromo: false, images: [] as string[], imagesInput: '' });
+    const [newProd, setNewProd] = useState({
+        name: '',
+        description: '',
+        category: '',
+        basePrice: 0,
+        stock: 0,
+        images: [] as string[],
+        imagesInput: ''
+    });
 
     const fetchData = async () => {
         try {
@@ -46,18 +54,9 @@ export default function AdminProducts() {
     const handleSave = async (e: React.FormEvent) => {
         e.preventDefault();
         try {
-            const finalPriceMillimes = newProd.isPromo
-                ? Math.round(newProd.basePrice * (1 - newProd.discount / 100) * 1000)
-                : Math.round(newProd.basePrice * 1000);
-
-            const oldPriceMillimes = newProd.isPromo
-                ? Math.round(newProd.basePrice * 1000)
-                : 0;
-
             const productToSave = {
                 ...newProd,
-                price: finalPriceMillimes,
-                oldPrice: oldPriceMillimes,
+                price: Math.round(newProd.basePrice * 1000),
                 images: newProd.imagesInput.split(',').map(s => s.trim()).filter(s => s)
             };
 
@@ -69,11 +68,11 @@ export default function AdminProducts() {
 
             setIsModalOpen(false);
             setEditingProductId(null);
-            setNewProd({ name: '', description: '', category: '', basePrice: 0, discount: 0, stock: 0, isPromo: false, images: [], imagesInput: '' });
+            setNewProd({ name: '', description: '', category: '', basePrice: 0, stock: 0, images: [], imagesInput: '' });
             fetchData();
         } catch (err: any) {
             console.error(err);
-            alert(err.response?.data?.message || 'Erreur lors de la sauvegarde du produit. Êtes-vous connecté en tant qu\'administrateur ?');
+            alert(err.response?.data?.message || 'Erreur lors de la sauvegarde du produit.');
         }
     };
 
@@ -93,7 +92,7 @@ export default function AdminProducts() {
                 <h1 style={{ fontSize: '32px', fontWeight: 700 }}>Manage Products</h1>
                 <button className="btn btn-primary" onClick={() => {
                     setEditingProductId(null);
-                    setNewProd({ name: '', description: '', category: '', basePrice: 0, discount: 0, stock: 0, isPromo: false, images: [], imagesInput: '' });
+                    setNewProd({ name: '', description: '', category: '', basePrice: 0, stock: 0, images: [], imagesInput: '' });
                     setIsModalOpen(true);
                 }}>
                     <Plus size={18} /> Add Product
@@ -116,11 +115,17 @@ export default function AdminProducts() {
                             <tr key={prod._id || prod.id} style={{ borderBottom: '1px solid var(--color-border)' }}>
                                 <td style={{ padding: '16px 24px', fontWeight: 500 }}>
                                     <div className="flex items-center gap-3">
-                                        <img src={prod.images?.[0] || 'https://via.placeholder.com/40'} alt={prod.name} style={{ width: '40px', height: '40px', objectFit: 'cover', borderRadius: '4px' }} />
+                                        <img
+                                            src={prod.images?.[0] || 'https://via.placeholder.com/40'}
+                                            alt={prod.name}
+                                            style={{ width: '40px', height: '40px', objectFit: 'cover', borderRadius: '4px' }}
+                                        />
                                         <span>{prod.name || prod.title}</span>
                                     </div>
                                 </td>
-                                <td style={{ padding: '16px 24px', color: 'var(--color-text-muted)' }}>{prod.category?.name || prod.category}</td>
+                                <td style={{ padding: '16px 24px', color: 'var(--color-text-muted)' }}>
+                                    {prod.category?.name || prod.category}
+                                </td>
                                 <td style={{ padding: '16px 24px', fontWeight: 600 }}>
                                     {prod.isPromo && prod.oldPrice ? (
                                         <div className="flex flex-col">
@@ -147,29 +152,34 @@ export default function AdminProducts() {
                                 <td style={{ padding: '16px 24px', textAlign: 'right' }}>
                                     <div className="flex justify-end gap-2 text-muted">
                                         <button className="hover:text-primary" onClick={() => {
-                                            const isPromo = prod.isPromo || false;
-                                            const basePriceValue = (isPromo && prod.oldPrice) ? (prod.oldPrice / 1000) : ((prod.price || 0) / 1000);
-                                            const calculatedDiscount = (isPromo && prod.oldPrice && prod.price) ? Math.round(((prod.oldPrice - prod.price) / prod.oldPrice) * 100) : 0;
-
                                             setEditingProductId(prod._id || prod.id);
                                             setNewProd({
                                                 name: prod.name || prod.title || '',
                                                 description: prod.description || '',
                                                 category: prod.category?._id || prod.category?.id || prod.category || '',
-                                                basePrice: basePriceValue,
-                                                discount: calculatedDiscount,
+                                                basePrice: (prod.price || 0) / 1000,
                                                 stock: prod.stock || 0,
-                                                isPromo: isPromo,
                                                 images: prod.images || [],
                                                 imagesInput: (prod.images || []).join(', ')
                                             });
                                             setIsModalOpen(true);
-                                        }}><Edit2 size={18} /></button>
-                                        <button className="hover:text-error" onClick={() => handleDelete(prod._id || prod.id)}><Trash2 size={18} /></button>
+                                        }}>
+                                            <Edit2 size={18} />
+                                        </button>
+                                        <button className="hover:text-error" onClick={() => handleDelete(prod._id || prod.id)}>
+                                            <Trash2 size={18} />
+                                        </button>
                                     </div>
                                 </td>
                             </tr>
                         ))}
+                        {products.length === 0 && (
+                            <tr>
+                                <td colSpan={5} style={{ padding: '32px', textAlign: 'center', color: 'var(--color-text-muted)' }}>
+                                    No products found
+                                </td>
+                            </tr>
+                        )}
                     </tbody>
                 </table>
             </div>
@@ -177,74 +187,91 @@ export default function AdminProducts() {
             {isModalOpen && (
                 <div style={{ position: 'fixed', inset: 0, backgroundColor: 'rgba(0,0,0,0.5)', zIndex: 100, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
                     <div className="animate-fade-in-up" style={{ backgroundColor: 'var(--color-surface)', padding: '32px', borderRadius: 'var(--radius-lg)', width: '500px', boxShadow: 'var(--shadow-lg)', maxHeight: '90vh', overflowY: 'auto' }}>
-                        <h2 style={{ fontSize: '20px', fontWeight: 600, marginBottom: '24px' }}>{editingProductId ? 'Edit Product' : 'Add New Product'}</h2>
+                        <h2 style={{ fontSize: '20px', fontWeight: 600, marginBottom: '24px' }}>
+                            {editingProductId ? 'Edit Product' : 'Add New Product'}
+                        </h2>
                         <form onSubmit={handleSave} className="flex flex-col gap-4">
                             <div>
                                 <label style={{ fontSize: '12px', fontWeight: 600, display: 'block', marginBottom: '8px' }}>Product Title</label>
-                                <input type="text" value={newProd.name} onChange={e => setNewProd({ ...newProd, name: e.target.value })} required />
+                                <input
+                                    type="text"
+                                    value={newProd.name}
+                                    onChange={e => setNewProd({ ...newProd, name: e.target.value })}
+                                    required
+                                />
                             </div>
                             <div>
                                 <label style={{ fontSize: '12px', fontWeight: 600, display: 'block', marginBottom: '8px' }}>Description</label>
-                                <input type="text" value={newProd.description} onChange={e => setNewProd({ ...newProd, description: e.target.value })} required />
+                                <input
+                                    type="text"
+                                    value={newProd.description}
+                                    onChange={e => setNewProd({ ...newProd, description: e.target.value })}
+                                    required
+                                />
                             </div>
-                            <div className="flex gap-4">
-                                <div style={{ flex: 1 }}>
-                                    <label style={{ fontSize: '12px', fontWeight: 600, display: 'block', marginBottom: '8px' }}>Category</label>
-                                    <select value={newProd.category} onChange={e => setNewProd({ ...newProd, category: e.target.value })} required>
-                                        <option value="">Select Category</option>
-                                        {categories.map(cat => (
-                                            <option key={cat._id} value={cat._id}>{cat.name}</option>
-                                        ))}
-                                    </select>
-                                </div>
+                            <div>
+                                <label style={{ fontSize: '12px', fontWeight: 600, display: 'block', marginBottom: '8px' }}>Category</label>
+                                <select
+                                    value={newProd.category}
+                                    onChange={e => setNewProd({ ...newProd, category: e.target.value })}
+                                    required
+                                >
+                                    <option value="">Select Category</option>
+                                    {categories.map(cat => (
+                                        <option key={cat._id} value={cat._id}>{cat.name}</option>
+                                    ))}
+                                </select>
                             </div>
                             <div className="flex gap-4">
                                 <div style={{ flex: 1 }}>
                                     <label style={{ fontSize: '12px', fontWeight: 600, display: 'block', marginBottom: '8px' }}>Base Price (DT)</label>
-                                    <input type="number" step="0.001" min="0" value={newProd.basePrice || ''} onChange={e => setNewProd({ ...newProd, basePrice: Number(e.target.value) })} required />
+                                    <input
+                                        type="number"
+                                        step="0.001"
+                                        min="0"
+                                        value={newProd.basePrice || ''}
+                                        onChange={e => setNewProd({ ...newProd, basePrice: Number(e.target.value) })}
+                                        required
+                                    />
                                 </div>
-                                <div style={{ flex: 1, display: 'flex', alignItems: 'center', paddingTop: '24px' }}>
-                                    <label style={{ display: 'flex', alignItems: 'center', gap: '8px', cursor: 'pointer' }}>
-                                        <input type="checkbox" checked={newProd.isPromo} onChange={e => setNewProd({ ...newProd, isPromo: e.target.checked, discount: e.target.checked ? newProd.discount : 0 })} />
-                                        <span style={{ fontSize: '14px', fontWeight: 600 }}>Apply Promotion?</span>
-                                    </label>
-                                </div>
-                            </div>
-
-                            {newProd.isPromo && (
-                                <div className="flex gap-4 p-4 rounded-lg" style={{ backgroundColor: 'var(--color-primary-light)', border: '1px solid var(--color-primary)' }}>
-                                    <div style={{ flex: 1 }}>
-                                        <label style={{ fontSize: '12px', fontWeight: 600, display: 'block', marginBottom: '8px', color: 'var(--color-primary)' }}>Discount (%)</label>
-                                        <input type="number" min="0" max="100" value={newProd.discount === 0 ? '' : newProd.discount} onChange={e => setNewProd({ ...newProd, discount: Number(e.target.value) })} required style={{ borderColor: 'var(--color-primary)' }} />
-                                    </div>
-                                    <div style={{ flex: 1 }}>
-                                        <label style={{ fontSize: '12px', fontWeight: 600, display: 'block', marginBottom: '8px', color: 'var(--color-primary)' }}>Final Price (Auto-calculated)</label>
-                                        <div style={{ padding: '10px 16px', backgroundColor: 'white', borderRadius: '4px', border: '1px solid var(--color-primary)', fontSize: '16px', fontWeight: 700, color: 'var(--color-primary)' }}>
-                                            {(newProd.basePrice * (1 - newProd.discount / 100)).toFixed(3)} DT
-                                        </div>
-                                    </div>
-                                </div>
-                            )}
-                            <div className="flex gap-4">
                                 <div style={{ flex: 1 }}>
                                     <label style={{ fontSize: '12px', fontWeight: 600, display: 'block', marginBottom: '8px' }}>Initial Stock</label>
-                                    <input type="number" value={newProd.stock !== undefined ? newProd.stock : ''} onChange={e => setNewProd({ ...newProd, stock: Number(e.target.value) })} required />
+                                    <input
+                                        type="number"
+                                        value={newProd.stock !== undefined ? newProd.stock : ''}
+                                        onChange={e => setNewProd({ ...newProd, stock: Number(e.target.value) })}
+                                        required
+                                    />
                                 </div>
-                                <div style={{ flex: 1 }}></div>
                             </div>
                             <div className="flex gap-4 items-end">
                                 <div style={{ flex: 1 }}>
                                     <label style={{ fontSize: '12px', fontWeight: 600, display: 'block', marginBottom: '8px' }}>Image URLs (comma separated)</label>
-                                    <input type="text" value={newProd.imagesInput || ''} onChange={e => setNewProd({ ...newProd, imagesInput: e.target.value })} placeholder="https://img1.jpg, https://img2.jpg" style={{ width: '100%', padding: '12px', borderRadius: '4px', border: '1px solid var(--color-border)', backgroundColor: 'var(--color-surface)', fontSize: '14px' }} />
+                                    <input
+                                        type="text"
+                                        value={newProd.imagesInput || ''}
+                                        onChange={e => setNewProd({ ...newProd, imagesInput: e.target.value })}
+                                        placeholder="https://img1.jpg, https://img2.jpg"
+                                        style={{ width: '100%', padding: '12px', borderRadius: '4px', border: '1px solid var(--color-border)', backgroundColor: 'var(--color-surface)', fontSize: '14px' }}
+                                    />
                                 </div>
                                 <div style={{ flex: 1 }}>
                                     <label style={{ fontSize: '12px', fontWeight: 600, display: 'block', marginBottom: '8px' }}>Or upload from PC</label>
-                                    <input type="file" accept="image/*" onChange={handleFileUpload} style={{ padding: '8px', fontSize: '14px' }} />
+                                    <input
+                                        type="file"
+                                        accept="image/*"
+                                        onChange={handleFileUpload}
+                                        style={{ padding: '8px', fontSize: '14px' }}
+                                    />
                                 </div>
                             </div>
                             <div className="flex gap-4 mt-4">
-                                <button type="button" className="btn btn-outline" style={{ flex: 1 }} onClick={() => setIsModalOpen(false)}>Cancel</button>
-                                <button type="submit" className="btn btn-primary" style={{ flex: 1 }}>Save Product</button>
+                                <button type="button" className="btn btn-outline" style={{ flex: 1 }} onClick={() => setIsModalOpen(false)}>
+                                    Cancel
+                                </button>
+                                <button type="submit" className="btn btn-primary" style={{ flex: 1 }}>
+                                    Save Product
+                                </button>
                             </div>
                         </form>
                     </div>

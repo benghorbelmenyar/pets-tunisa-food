@@ -43,9 +43,39 @@ export default function Home() {
             .then(res => setFeaturedProducts(res.data.slice(0, 4)))
             .catch(console.error);
 
-        api.get('/products?promo=true')
-            .then(res => setPromoProducts(res.data.slice(0, 4)))
-            .catch(console.error);
+      api.get('/promotions')
+    .then(res => {
+        const now = new Date();
+        const activePromos = res.data.filter((p: any) =>
+            new Date(p.startDate) <= now && new Date(p.endDate) > now
+        );
+
+        // Flatten all products from active promos, deduplicate by _id
+        const seen = new Set<string>();
+        const promoProds: any[] = [];
+        activePromos.forEach((promo: any) => {
+            promo.applicableProducts?.forEach((prod: any) => {
+                if (!seen.has(prod._id)) {
+                    seen.add(prod._id);
+                    promoProds.push({
+                        ...prod,
+                        discountPercentage: promo.discountPercentage,
+                        // Compute promo price if not already applied on DB side
+                        promoPrice: prod.isPromo && prod.oldPrice
+                            ? prod.price
+                            : prod.price * (1 - promo.discountPercentage / 100),
+                        oldPrice: prod.isPromo && prod.oldPrice
+                            ? prod.oldPrice
+                            : prod.price,
+                        isPromo: true,
+                    });
+                }
+            });
+        });
+
+        setPromoProducts(promoProds.slice(0, 4));
+    })
+    .catch(console.error);
 
         api.get('/categories')
             .then(res => setCategories(res.data))
@@ -184,10 +214,16 @@ Pets Tunisia Food : le meilleur rapport Qualité/Prix Premium pour le prix d'une
                                         <div style={{ flex: 1, color: '#1a1a1a', display: 'flex', flexDirection: 'column', height: '100%', justifyContent: 'center' }}>
                                             <span style={{ fontSize: '10px', color: '#888', textTransform: 'uppercase', letterSpacing: '1px', marginBottom: '4px', display: 'block', fontWeight: 600 }}>{product.category?.name || 'Pets Tunisia'}</span>
                                             <h3 style={{ fontSize: '13px', fontWeight: 700, marginBottom: '8px', lineHeight: 1.3, display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical', overflow: 'hidden' }}>{product.name || product.title}</h3>
-                                            <div className="flex items-center gap-2">
-                                                <span style={{ fontSize: '14px', fontWeight: 800, color: '#b38d58' }}>{(product.price / 1000).toFixed(3)} DT</span>
-                                                {product.oldPrice && <span style={{ fontSize: '10px', textDecoration: 'line-through', color: '#a0a0a0' }}>{(product.oldPrice / 1000).toFixed(3)} DT</span>}
-                                            </div>
+                                           <div className="flex items-center gap-2">
+    <span style={{ fontSize: '14px', fontWeight: 800, color: '#b38d58' }}>
+        {((product.promoPrice ?? product.price) / 1000).toFixed(3)} DT
+    </span>
+    {product.oldPrice && product.oldPrice !== product.promoPrice && (
+        <span style={{ fontSize: '10px', textDecoration: 'line-through', color: '#a0a0a0' }}>
+            {(product.oldPrice / 1000).toFixed(3)} DT
+        </span>
+    )}
+</div>
                                         </div>
                                         {/* Cart Button */}
                                         <button className="flex items-center justify-center hover-scale transition-all" onClick={(e) => { e.preventDefault(); }} style={{ width: '32px', height: '32px', borderRadius: '50%', backgroundColor: '#1a1a1a', color: 'white', border: 'none', cursor: 'pointer', flexShrink: 0, alignSelf: 'flex-end' }}>
