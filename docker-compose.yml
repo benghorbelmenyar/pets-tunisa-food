@@ -5,7 +5,7 @@ services:
       - "3000:3000"
     environment:
       - NODE_ENV=production
-      - MONGODB_URI=mongodb://mongo:27017/pets   ← ajoute cette ligne
+      - MONGODB_URI=mongodb://mongo:27017/pets
     depends_on:
       - mongo
     restart: unless-stopped
@@ -26,11 +26,14 @@ services:
       - mongodata:/data/db
     restart: unless-stopped
 
-volumes:
-  mongodata:
   jenkins:
     image: jenkins/jenkins:lts
     ports:
       - "8080:8080"
     volumes:
       - jenkins_data:/var/jenkins_home
+    restart: unless-stopped
+
+volumes:
+  mongodata:
+  jenkins_data:
